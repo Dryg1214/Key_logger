@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <iostream>
-
+#include <pthread.h>
 #include <linux/input.h>
 #include <fcntl.h>
 #include <X11/Xlib.h>
@@ -13,34 +13,10 @@
 #include <assert.h>
 #include <ctime>
 
-#define MOUSEFILE "/dev/input/mice"
-
-std::string CurrentDateTime()
-{
-    std::string output = "Date:  ";
-    time_t seconds = time(nullptr);
-    tm* pTm = localtime(&seconds);
-    return output + asctime(pTm);
-}
-
-void coords(Display *display, int *x, int *y) {
-    XEvent event;
-    XQueryPointer(display, DefaultRootWindow(display),
-                  &event.xbutton.root, &event.xbutton.window,
-                  &event.xbutton.x_root, &event.xbutton.y_root,
-                  &event.xbutton.x, &event.xbutton.y,
-                  &event.xbutton.state);
-    *x = event.xbutton.x;
-    *y = event.xbutton.y;
-    std::cout<< x << "X coordinate , " << y << "Y coordinate "<< std::endl;
-}
-
-void active_mice_stream()
-{
+void active_mice_stream() {
     Display *display;
     Window root_window;
 
-    /* Initialize (FIXME: no error checking). */
     display = XOpenDisplay(0);
     root_window = XRootWindow(display, 0);
 
@@ -71,59 +47,65 @@ void active_mice_stream()
     evmasks[0].mask = mask_bytes;
     XISelectEvents(display, root_window, evmasks, 1);
 
+    //1)long e_mask
+    //2)pthread
+    //3)XCheckMaskEvent
     XEvent xevent;
     auto first = time(NULL);
     auto second = first;
     auto write_flag = true;
 
     while (1) {
-        if (time(NULL)-first > 5)
-        {
-            std::cout<<"Aboba bezdeistvuet" << std::endl;
+
+        if (time(NULL) - first > 5 && write_flag == true) {
+            std::cout << "Я НЕ РАБОТЯГА" << std::endl;
             write_flag = false;
             first = second;
         }
+        while (XPending(display)) {
+            XNextEvent(display, &xevent);
 
-        XNextEvent(display, &xevent);
-
-        if (xevent.xcookie.type != GenericEvent || xevent.xcookie.extension != xi_opcode) {
-            /* not an XInput event */
-            continue;
-        }
-        XGetEventData(display, &xevent.xcookie);
-        if (xevent.xcookie.evtype != XI_RawMotion) {
+            if (xevent.xcookie.type != GenericEvent || xevent.xcookie.extension != xi_opcode) {
+                /* not an XInput event */
+                continue;
+            }
+            XGetEventData(display, &xevent.xcookie);
+            if (xevent.xcookie.evtype != XI_RawMotion) {
+                XFreeEventData(display, &xevent.xcookie);
+                continue;
+            }
             XFreeEventData(display, &xevent.xcookie);
-            continue;
-        }
-        XFreeEventData(display, &xevent.xcookie);
 
-        Window root_return, child_return;
-        int root_x_return, root_y_return;
-        int win_x_return, win_y_return;
-        unsigned int mask_return;
-        int retval = XQueryPointer(display, root_window, &root_return, &child_return,
-                                   &root_x_return, &root_y_return,
-                                   &win_x_return, &win_y_return,
-                                   &mask_return);
-        if (!retval) {
-            continue;
-        }
-        assert(root_x_return == win_x_return);
-        assert(root_y_return == win_y_return);
+            Window root_return, child_return;
+            int root_x_return, root_y_return;
+            int win_x_return, win_y_return;
+            unsigned int mask_return;
+            int retval = XQueryPointer(display, root_window, &root_return, &child_return,
+                                       &root_x_return, &root_y_return,
+                                       &win_x_return, &win_y_return,
+                                       &mask_return);
+            if (!retval) {
+                continue;
+            }
+            assert(root_x_return == win_x_return);
+            assert(root_y_return == win_y_return);
 
-        second = time(NULL);
-        write_flag = true;
-        printf("root: x %d y %d\n", root_x_return, root_y_return);
+            second = time(NULL);
+            write_flag = true;
+            //Tyt root coordinate
+            //printf("root: x %d y %d\n", root_x_return, root_y_return);
 
-        if (child_return) {
-            int local_x, local_y;
-            XTranslateCoordinates(display, root_window, child_return,
-                                  root_x_return, root_y_return,
-                                  &local_x, &local_y, &child_return);
-            printf("local: x %d y %d\n\n", local_x, local_y);
+            if (child_return) {
+                int local_x, local_y;
+                XTranslateCoordinates(display, root_window, child_return,
+                                      root_x_return, root_y_return,
+                                      &local_x, &local_y, &child_return);
+                //printf("local: x %d y %d\n\n", local_x, local_y);
+            }
         }
     }
     XCloseDisplay(display);
-    //return 0;
 }
+    //return 0;
+
 #endif //KEY_LOGGER_MICE_H
