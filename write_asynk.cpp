@@ -22,7 +22,7 @@ struct aiocb createIoRequest(int fd,
 
 void write_vector(std::vector<std::string>& names, int fd)
 {
-    for(int i = 0; i< names.size(); i++)
+    for(int i = 0; i < names.size(); i++)
     {
         struct aiocb op = createIoRequest(fd, 0, (volatile void *)names[i].c_str(), names[i].size());
         int ret = aio_write(&op);
@@ -43,7 +43,7 @@ void write_vector(std::vector<std::string>& names, int fd)
     }
 }
 
-
+/*
 int main(){
 
     FILE * file = fopen("/home/dungeonmaster/file.txt","a+");
@@ -57,4 +57,4 @@ int main(){
     write_vector(names, fd);
     fclose(file);
     return 0;
-}
+}*/

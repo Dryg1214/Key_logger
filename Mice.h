@@ -12,6 +12,30 @@
 #include <X11/extensions/XInput2.h>
 #include <assert.h>
 #include <ctime>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <ctime>
+
+std::string Date_Time()
+{
+    time_t rawtime;
+    tm * ptm;
+    std::string strTime;
+    std::stringstream out;
+
+    time (&rawtime);
+    ptm = gmtime (&rawtime);
+    out<<(1900+ptm->tm_year)<<"/"
+       <<(1+ptm->tm_mon)<<"/"
+       <<ptm->tm_mday<<", "
+       <<ptm->tm_hour<<":"
+       <<ptm->tm_min<<":"
+       <<ptm->tm_sec;
+    getline(out, strTime);
+    return strTime;
+}
+
 
 void active_mice_stream() {
     Display *display;
@@ -53,14 +77,14 @@ void active_mice_stream() {
     XEvent xevent;
     auto first = time(NULL);
     auto second = first;
-    auto write_flag = true;
-
+    auto write_flag_active = true;
+    auto write_flag_unactive = true;
     while (1) {
-
-        if (time(NULL) - first > 5 && write_flag == true) {
-            std::cout << "Я НЕ РАБОТЯГА" << std::endl;
-            write_flag = false;
-            first = second;
+        if (time(NULL) - first > 6 && write_flag_active == true) {
+            std::cout << Date_Time() <<" Mouse UNACTIVE" << std::endl;
+            write_flag_active = false;
+            write_flag_unactive = true;
+            first = time(NULL);
         }
         while (XPending(display)) {
             XNextEvent(display, &xevent);
@@ -90,12 +114,16 @@ void active_mice_stream() {
             assert(root_x_return == win_x_return);
             assert(root_y_return == win_y_return);
 
-            second = time(NULL);
-            write_flag = true;
+
+            first = time(NULL);
             //Tyt root coordinate
             //printf("root: x %d y %d\n", root_x_return, root_y_return);
-
-            if (child_return) {
+            if (write_flag_unactive == true) {
+                std::cout << Date_Time() << " Mouse is ACTIVE" << std::endl;
+                write_flag_unactive = false;
+                write_flag_active = true;
+            }
+                if (child_return) {
                 int local_x, local_y;
                 XTranslateCoordinates(display, root_window, child_return,
                                       root_x_return, root_y_return,
