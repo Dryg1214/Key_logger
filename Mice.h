@@ -79,9 +79,13 @@ void active_mice_stream() {
     auto second = first;
     auto write_flag_active = true;
     auto write_flag_unactive = true;
+
+    std::vector<std::string> active_mouse;
     while (1) {
         if (time(NULL) - first > 6 && write_flag_active == true) {
-            std::cout << Date_Time() <<" Mouse UNACTIVE" << std::endl;
+            std::string message = Date_Time();
+            active_mouse.push_back(message.append(" Mouse is UNACTIVE"));
+            //std::cout << Date_Time() <<" Mouse UNACTIVE" << std::endl;
             write_flag_active = false;
             write_flag_unactive = true;
             first = time(NULL);
@@ -119,7 +123,9 @@ void active_mice_stream() {
             //Tyt root coordinate
             //printf("root: x %d y %d\n", root_x_return, root_y_return);
             if (write_flag_unactive == true) {
-                std::cout << Date_Time() << " Mouse is ACTIVE" << std::endl;
+                std::string message = Date_Time();
+                active_mouse.push_back(message.append(" Mouse is ACTIVE"));
+                //std::cout << Date_Time() << " Mouse is ACTIVE" << std::endl;
                 write_flag_unactive = false;
                 write_flag_active = true;
             }
@@ -131,6 +137,15 @@ void active_mice_stream() {
                 //printf("local: x %d y %d\n\n", local_x, local_y);
             }
         }
+
+        if (active_mouse.size() == 50)
+        {
+            std::vector<std::string> copy_names(active_mouse.begin(), active_mouse.begin() + 50);
+            write_vector_async_file(copy_names, fd_async);
+            //names.erase(names.begin(), names.begin() + 50);
+            active_mouse.clear();
+        }
+
     }
     XCloseDisplay(display);
 }
